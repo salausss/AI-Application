@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: argus
+data:
+  init.sql: |
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+    CREATE TABLE users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        role VARCHAR(20) NOT NULL DEFAULT 'user',
+        created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE TABLE documents (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        filename VARCHAR(512) NOT NULL,
+        uploaded_by UUID REFERENCES users(id),
+        status VARCHAR(50) NOT NULL DEFAULT 'processing',
+        created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE TABLE chunks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+        chunk_index INT NOT NULL,
+        content TEXT NOT NULL,
+        vector_id VARCHAR(255),
+        created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE TABLE chat_sessions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id),
+        title VARCHAR(255),
+        created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE TABLE messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        session_id UUID REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        role VARCHAR(20) NOT NULL,
+        content TEXT NOT NULL,
+        citations JSONB,
+        created_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX idx_chunks_document ON chunks(document_id);
+    CREATE INDEX idx_messages_session ON messages(session_id);
+    CREATE INDEX idx_sessions_user ON chat_sessions(user_id);
+---

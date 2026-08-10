@@ -1,0 +1,45 @@
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: argus
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: {app: postgres}
+  template:
+    metadata:
+      labels: {app: postgres}
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports: [{containerPort: 5432}]
+          env:
+            - {name: POSTGRES_DB, value: "argus"}
+            - {name: POSTGRES_USER, value: "argus"}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: argus-secrets, key: POSTGRES_PASSWORD}}
+          volumeMounts:
+            - {name: pgdata, mountPath: /var/lib/postgresql/data}
+            - {name: init-script, mountPath: /docker-entrypoint-initdb.d}
+      volumes:
+        - name: init-script
+          configMap: {name: postgres-init}
+  volumeClaimTemplates:
+    - metadata: {name: pgdata}
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: gp3
+        resources: {requests: {storage: 5Gi}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: argus
+spec:
+  selector: {app: postgres}
+  ports: [{port: 5432, targetPort: 5432}]
