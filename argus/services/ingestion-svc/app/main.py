@@ -8,6 +8,15 @@ import asyncpg
 from fastapi import FastAPI, UploadFile, File
 from pypdf import PdfReader
 from uuid import uuid4
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],   # tighten to your actual ALB hostname before anything resembling production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ingestion-svc")
