@@ -14,7 +14,7 @@ spec:
       serviceAccountName: argus-sa   # IRSA — reuse your Bedrock MLOps IAM role pattern for Bedrock access
       containers:
         - name: chat-svc
-          image: <your-ecr-repo>/chat-svc:latest
+          image: 844074033173.dkr.ecr.ap-south-1.amazonaws.com/argus/chat-svc:latest
           ports: [{containerPort: 8000}]
           env:
           - name: POSTGRES_PASSWORD
