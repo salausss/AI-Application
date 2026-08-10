@@ -1,4 +1,3 @@
-
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -22,8 +21,9 @@ spec:
             - {name: POSTGRES_USER, value: "argus"}
             - name: POSTGRES_PASSWORD
               valueFrom: {secretKeyRef: {name: argus-secrets, key: POSTGRES_PASSWORD}}
+            - {name: PGDATA, value: "/var/lib/postgresql/data/pgdata"}   # <-- the fix
           volumeMounts:
-            - {name: pgdata, mountPath: /var/lib/postgresql/data}
+            - {name: pgdata, mountPath: /var/lib/postgresql/data}         # mount stays the same
             - {name: init-script, mountPath: /docker-entrypoint-initdb.d}
       volumes:
         - name: init-script
