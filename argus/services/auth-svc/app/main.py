@@ -6,15 +6,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from jose import jwt, JWTError
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],   # tighten to your actual ALB hostname before anything resembling production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 app = FastAPI(title="auth-svc", version="0.1.0")
 
