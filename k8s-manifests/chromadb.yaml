@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: chromadb
-          image: chromadb/chroma:latest
+          image: chromadb/chroma:0.5.15 
           ports: [{containerPort: 8000}]
           volumeMounts:
             - {name: chromadata, mountPath: /chroma/chroma}
