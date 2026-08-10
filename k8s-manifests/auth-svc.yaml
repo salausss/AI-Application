@@ -14,7 +14,7 @@ spec:
       serviceAccountName: argus-sa
       containers:
         - name: auth-svc
-          image: <account-id>.dkr.ecr.ap-south-1.amazonaws.com/auth-svc:latest
+          image: 844074033173.dkr.ecr.ap-south-1.amazonaws.com/argus/auth-svc:latest
           ports: [{containerPort: 8000}]
           env:
             - name: POSTGRES_PASSWORD

@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
         - name: web-ui
-          image: <account-id>.dkr.ecr.ap-south-1.amazonaws.com/web-ui:latest
+          image: 844074033173.dkr.ecr.ap-south-1.amazonaws.com/argus/frontend:latest
           ports: [{containerPort: 80}]
           readinessProbe:
             httpGet: {path: /, port: 80}

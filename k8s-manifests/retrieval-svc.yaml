@@ -14,7 +14,7 @@ spec:
       serviceAccountName: argus-sa
       containers:
         - name: retrieval-svc
-          image: <account-id>.dkr.ecr.ap-south-1.amazonaws.com/retrieval-svc:latest
+          image: 844074033173.dkr.ecr.ap-south-1.amazonaws.com/argus/retrieval-svc:latest
           ports: [{containerPort: 8000}]
           env:
             - {name: CHROMA_HOST, value: "chromadb"}
