@@ -17,12 +17,14 @@ spec:
           image: <your-ecr-repo>/chat-svc:latest
           ports: [{containerPort: 8000}]
           env:
-            - name: DATABASE_URL
-              value: "postgresql://argus:$(POSTGRES_PASSWORD)@postgres:5432/argus"
-            - name: POSTGRES_PASSWORD
-              valueFrom: {secretKeyRef: {name: argus-secrets, key: POSTGRES_PASSWORD}}
-            - {name: RETRIEVAL_URL, value: "http://retrieval-svc:8000"}
-            - {name: AWS_REGION, value: "ap-south-1"}
+          - name: POSTGRES_PASSWORD
+            valueFrom: {secretKeyRef: {name: argus-secrets, key: POSTGRES_PASSWORD}}
+          - name: DATABASE_URL
+            value: "postgresql://argus:$(POSTGRES_PASSWORD)@postgres:5432/argus"
+          - name: RETRIEVAL_URL
+            value: "http://retrieval-svc:8000"
+          - name: AWS_REGION
+            value: "ap-south-1"
           readinessProbe:
             httpGet: {path: /health, port: 8000}
             initialDelaySeconds: 5
