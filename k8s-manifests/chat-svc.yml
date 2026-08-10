@@ -15,6 +15,7 @@ spec:
       containers:
         - name: chat-svc
           image: 844074033173.dkr.ecr.ap-south-1.amazonaws.com/argus/chat-svc:latest
+          imagePullPolicy: Always
           ports: [{containerPort: 8000}]
           env:
           - name: POSTGRES_PASSWORD
