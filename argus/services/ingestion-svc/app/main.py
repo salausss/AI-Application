@@ -1,0 +1,106 @@
+import os
+import io
+import json
+import logging
+import boto3
+import chromadb
+import asyncpg
+from fastapi import FastAPI, UploadFile, File
+from pypdf import PdfReader
+from uuid import uuid4
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ingestion-svc")
+
+app = FastAPI(title="ingestion-svc", version="0.1.0")
+
+DATABASE_URL = os.environ["DATABASE_URL"]
+CHROMA_HOST = os.environ.get("CHROMA_HOST", "chromadb")
+CHROMA_PORT = int(os.environ.get("CHROMA_PORT", "8000"))
+AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
+EMBED_MODEL_ID = os.environ.get("EMBED_MODEL_ID", "amazon.titan-embed-text-v2:0")
+COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "argus_chunks")
+
+CHUNK_SIZE = 1500     # characters, ~roughly 350-400 tokens
+CHUNK_OVERLAP = 200
+
+bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
+chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+collection = chroma_client.get_or_create_collection(COLLECTION_NAME)
+
+_pool: asyncpg.Pool | None = None
+
+
+async def get_pool() -> asyncpg.Pool:
+    global _pool
+    if _pool is None:
+        _pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
+    return _pool
+
+
+def embed_text(text: str) -> list[float]:
+    resp = bedrock.invoke_model(modelId=EMBED_MODEL_ID, body=json.dumps({"inputText": text}))
+    return json.loads(resp["body"].read())["embedding"]
+
+
+def chunk_text(text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
+    chunks = []
+    start = 0
+    while start < len(text):
+        end = start + size
+        chunks.append(text[start:end])
+        start += size - overlap
+    return [c.strip() for c in chunks if c.strip()]
+
+
+def extract_text(filename: str, raw: bytes) -> str:
+    if filename.lower().endswith(".pdf"):
+        reader = PdfReader(io.BytesIO(raw))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+    return raw.decode("utf-8", errors="ignore")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+@app.post("/api/v1/documents")
+async def ingest_document(file: UploadFile = File(...)):
+    pool = await get_pool()
+    raw = await file.read()
+    text = extract_text(file.filename, raw)
+    chunks = chunk_text(text)
+
+    async with pool.acquire() as conn:
+        document_id = await conn.fetchval(
+            "INSERT INTO documents (filename, status) VALUES ($1, 'processing') RETURNING id",
+            file.filename,
+        )
+
+        for idx, chunk in enumerate(chunks):
+            vector_id = str(uuid4())
+            embedding = embed_text(chunk)
+
+            collection.add(
+                ids=[vector_id],
+                embeddings=[embedding],
+                documents=[chunk],
+                metadatas=[{"document_id": str(document_id), "chunk_index": idx}],
+            )
+
+            await conn.execute(
+                "INSERT INTO chunks (document_id, chunk_index, content, vector_id) VALUES ($1, $2, $3, $4)",
+                document_id, idx, chunk, vector_id,
+            )
+
+        await conn.execute("UPDATE documents SET status = 'ready' WHERE id = $1", document_id)
+
+    return {"document_id": str(document_id), "chunks_created": len(chunks)}
+
+
+# --- TODO (Day 1 hands-on) ---
+# - Handle re-ingestion of an updated document (delete old chunks/vectors first)
+# - Handle delete: DELETE /api/v1/documents/{id} should remove rows AND vectors from Chroma
+# - Consider semantic chunking (split on headings/paragraphs) instead of fixed-size —
+#   good talking point on chunking trade-offs either way
