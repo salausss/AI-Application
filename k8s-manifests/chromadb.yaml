@@ -22,7 +22,7 @@ spec:
     - metadata: {name: chromadata}
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: gp3
+        storageClassName: gp2-retain
         resources: {requests: {storage: 10Gi}}
 ---
 apiVersion: v1

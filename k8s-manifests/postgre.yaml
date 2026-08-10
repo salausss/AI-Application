@@ -32,7 +32,7 @@ spec:
     - metadata: {name: pgdata}
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: gp3
+        storageClassName: gp2-retain
         resources: {requests: {storage: 5Gi}}
 ---
 apiVersion: v1
