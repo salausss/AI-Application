@@ -1,0 +1,51 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: ap-south-1
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # needed for OIDC auth to AWS
+      contents: read
+
+    strategy:
+      matrix:
+        service:
+          - name: auth-svc
+            path: ./argus/services/auth-svc
+          - name: chat-svc
+            path: ./argus/services/chat-svc
+          - name: frontend
+            path: ./argus/frontend
+          - name: ingestion-svc
+            path: ./argus/services/ingestion-svc
+          - name: retrieval-svc
+            path: ./argus/services/retrieval-svc
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::844074033173:role/github-action
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: argus/${{ matrix.service.name }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest ${{ matrix.service.path }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
