@@ -17,7 +17,7 @@ app = FastAPI(title="chat-svc", version="0.1.0")
 DATABASE_URL = os.environ["DATABASE_URL"]
 RETRIEVAL_URL = os.environ.get("RETRIEVAL_URL", "http://retrieval-svc:8000")
 AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
-BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5-20250929-v1:0")
+BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "global.anthropic.claude-sonnet-4-5-20250929-v1:0")
 
 bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
 
