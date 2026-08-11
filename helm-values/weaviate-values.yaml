@@ -1,0 +1,33 @@
+# weaviate-values.yaml
+image:
+  tag: 1.27.0   # pin a real version — same lesson as the ChromaDB :latest bug
+
+replicas: 1
+
+storage:
+  size: 20Gi
+  storageClassName: gp2-retain   # or gp2-retain, whichever you settled on earlier
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+env:
+  QUERY_DEFAULTS_LIMIT: 25
+  AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"   # dev only — flag this, see note below
+  PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+  DEFAULT_VECTORIZER_MODULE: "none"   # you're bringing your own embeddings from Bedrock Titan
+  ENABLE_MODULES: ""
+  CLUSTER_HOSTNAME: "weaviate-0"
+
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+    - name: grpc
+      port: 50051

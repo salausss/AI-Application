@@ -3,6 +3,8 @@ name: Build and Push to ECR
 on:
   push:
     branches: [main]
+    paths:
+      - 'argus/**'
 
 env:
   AWS_REGION: ap-south-1
