@@ -25,7 +25,9 @@ spec:
             - {name: CHROMA_HOST, value: "chromadb"}
             - {name: AWS_REGION, value: "ap-south-1"}
             - {name: VECTOR_BACKEND, value: "weaviate"}
-            - {name: WEAVIATE_HOST, value: "weaviate"}
+            - {name: WEAVIATE_HTTP_HOST, value: "weaviate"}
+            - {name: WEAVIATE_HTTP_PORT, value: "8080"}
+            - {name: WEAVIATE_GRPC_PORT_NUM, value: "50051"}
           readinessProbe:
             httpGet: {path: /health, port: 8000}
             initialDelaySeconds: 5

@@ -22,9 +22,9 @@ VECTOR_BACKEND = os.environ.get("VECTOR_BACKEND", "chroma")  # "chroma" or "weav
 
 CHROMA_HOST = os.environ.get("CHROMA_HOST", "chromadb")
 CHROMA_PORT = int(os.environ.get("CHROMA_PORT", "8000"))
-WEAVIATE_HOST = os.environ.get("WEAVIATE_HOST", "weaviate")
-WEAVIATE_PORT = int(os.environ.get("WEAVIATE_PORT", "8080"))
-WEAVIATE_GRPC_PORT = int(os.environ.get("WEAVIATE_GRPC_PORT", "50051"))
+WEAVIATE_HOST = os.environ.get("WEAVIATE_HTTP_HOST", "weaviate")
+WEAVIATE_PORT = int(os.environ.get("WEAVIATE_HTTP_PORT", "8080"))
+WEAVIATE_GRPC_PORT = int(os.environ.get("WEAVIATE_GRPC_PORT_NUM", "50051"))
 
 AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
 EMBED_MODEL_ID = os.environ.get("EMBED_MODEL_ID", "amazon.titan-embed-text-v2:0")
