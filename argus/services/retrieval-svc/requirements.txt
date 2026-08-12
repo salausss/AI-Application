@@ -3,3 +3,4 @@ uvicorn[standard]==0.30.6
 pydantic==2.9.2
 chromadb==0.5.15
 boto3==1.35.24
+weaviate-client==4.9.0

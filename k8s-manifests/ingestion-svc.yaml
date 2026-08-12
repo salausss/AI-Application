@@ -24,6 +24,8 @@ spec:
               value: "postgresql://argus:$(POSTGRES_PASSWORD)@postgres:5432/argus"
             - {name: CHROMA_HOST, value: "chromadb"}
             - {name: AWS_REGION, value: "ap-south-1"}
+            - {name: VECTOR_BACKEND, value: "weaviate"}
+            - {name: WEAVIATE_HOST, value: "weaviate"}
           readinessProbe:
             httpGet: {path: /health, port: 8000}
             initialDelaySeconds: 5

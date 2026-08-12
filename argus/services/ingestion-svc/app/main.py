@@ -4,19 +4,11 @@ import json
 import logging
 import boto3
 import chromadb
+import weaviate
 import asyncpg
 from fastapi import FastAPI, UploadFile, File
 from pypdf import PdfReader
 from uuid import uuid4
-from fastapi.middleware.cors import CORSMiddleware
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],   # tighten to your actual ALB hostname before anything resembling production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ingestion-svc")
@@ -24,18 +16,39 @@ logger = logging.getLogger("ingestion-svc")
 app = FastAPI(title="ingestion-svc", version="0.1.0")
 
 DATABASE_URL = os.environ["DATABASE_URL"]
+
+# --- SPOT 1: backend selection + client setup, replaces the old unconditional chroma_client lines ---
+VECTOR_BACKEND = os.environ.get("VECTOR_BACKEND", "chroma")  # "chroma" or "weaviate"
+
 CHROMA_HOST = os.environ.get("CHROMA_HOST", "chromadb")
 CHROMA_PORT = int(os.environ.get("CHROMA_PORT", "8000"))
+WEAVIATE_HOST = os.environ.get("WEAVIATE_HOST", "weaviate")
+WEAVIATE_PORT = int(os.environ.get("WEAVIATE_PORT", "8080"))
+WEAVIATE_GRPC_PORT = int(os.environ.get("WEAVIATE_GRPC_PORT", "50051"))
+
 AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
 EMBED_MODEL_ID = os.environ.get("EMBED_MODEL_ID", "amazon.titan-embed-text-v2:0")
 COLLECTION_NAME = os.environ.get("COLLECTION_NAME", "argus_chunks")
 
-CHUNK_SIZE = 1500     # characters, ~roughly 350-400 tokens
+CHUNK_SIZE = 1500
 CHUNK_OVERLAP = 200
 
 bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
-chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
-collection = chroma_client.get_or_create_collection(COLLECTION_NAME)
+
+collection = None
+weaviate_client = None
+weaviate_collection = None
+
+if VECTOR_BACKEND == "chroma":
+    chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+    collection = chroma_client.get_or_create_collection(COLLECTION_NAME)
+elif VECTOR_BACKEND == "weaviate":
+    weaviate_client = weaviate.connect_to_custom(
+        http_host=WEAVIATE_HOST, http_port=WEAVIATE_PORT, http_secure=False,
+        grpc_host=WEAVIATE_HOST, grpc_port=WEAVIATE_GRPC_PORT, grpc_secure=False,
+    )
+    weaviate_collection = weaviate_client.collections.get("ArgusChunk")
+# --- end SPOT 1 ---
 
 _pool: asyncpg.Pool | None = None
 
@@ -71,7 +84,7 @@ def extract_text(filename: str, raw: bytes) -> str:
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "backend": VECTOR_BACKEND}
 
 
 @app.post("/api/v1/documents")
@@ -91,12 +104,20 @@ async def ingest_document(file: UploadFile = File(...)):
             vector_id = str(uuid4())
             embedding = embed_text(chunk)
 
-            collection.add(
-                ids=[vector_id],
-                embeddings=[embedding],
-                documents=[chunk],
-                metadatas=[{"document_id": str(document_id), "chunk_index": idx}],
-            )
+            # --- SPOT 2: replaces the old unconditional collection.add(...) call ---
+            if VECTOR_BACKEND == "weaviate":
+                weaviate_collection.data.insert(
+                    properties={"content": chunk, "documentId": str(document_id), "chunkIndex": idx},
+                    vector=embedding,
+                )
+            else:
+                collection.add(
+                    ids=[vector_id],
+                    embeddings=[embedding],
+                    documents=[chunk],
+                    metadatas=[{"document_id": str(document_id), "chunk_index": idx}],
+                )
+            # --- end SPOT 2 ---
 
             await conn.execute(
                 "INSERT INTO chunks (document_id, chunk_index, content, vector_id) VALUES ($1, $2, $3, $4)",
@@ -105,11 +126,11 @@ async def ingest_document(file: UploadFile = File(...)):
 
         await conn.execute("UPDATE documents SET status = 'ready' WHERE id = $1", document_id)
 
-    return {"document_id": str(document_id), "chunks_created": len(chunks)}
+    return {"document_id": str(document_id), "chunks_created": len(chunks), "backend": VECTOR_BACKEND}
 
 
 # --- TODO (Day 1 hands-on) ---
 # - Handle re-ingestion of an updated document (delete old chunks/vectors first)
-# - Handle delete: DELETE /api/v1/documents/{id} should remove rows AND vectors from Chroma
+# - Handle delete: DELETE /api/v1/documents/{id} should remove rows AND vectors from Chroma/Weaviate
 # - Consider semantic chunking (split on headings/paragraphs) instead of fixed-size —
 #   good talking point on chunking trade-offs either way
