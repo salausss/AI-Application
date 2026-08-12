@@ -39,6 +39,7 @@ elif VECTOR_BACKEND == "weaviate":
     weaviate_client = weaviate.connect_to_custom(
         http_host=WEAVIATE_HOST, http_port=WEAVIATE_PORT, http_secure=False,
         grpc_host=WEAVIATE_HOST, grpc_port=WEAVIATE_GRPC_PORT, grpc_secure=False,
+        skip_init_checks=True
     )
     weaviate_collection = weaviate_client.collections.get("ArgusChunk")
 
