@@ -6,3 +6,4 @@ chromadb==0.5.15
 boto3==1.35.24
 pypdf==5.0.1
 weaviate-client==4.9.0
+prometheus_client==0.21.0

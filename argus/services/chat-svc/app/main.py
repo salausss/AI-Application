@@ -8,11 +8,19 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from uuid import UUID, uuid4
+import time
+from prometheus_client import Counter, Histogram, make_asgi_app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chat-svc")
 
 app = FastAPI(title="chat-svc", version="0.1.0")
+
+RETRIEVAL_LATENCY = Histogram("retrieval_call_duration_seconds", "Time spent calling retrieval-svc")
+BEDROCK_LATENCY = Histogram("bedrock_invoke_duration_seconds", "Time spent in Bedrock invoke_model")
+TOKEN_USAGE = Counter("bedrock_tokens_total", "Total tokens used", ["type"])
+
+app.mount("/metrics", make_asgi_app())
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 RETRIEVAL_URL = os.environ.get("RETRIEVAL_URL", "http://retrieval-svc:8000")
@@ -57,10 +65,12 @@ async def chat(req: ChatRequest):
 
         # 1. Retrieve relevant chunks
         async with httpx.AsyncClient(timeout=15.0) as client:
+            retrieval_start = time.time()
             try:
                 resp = await client.post(f"{RETRIEVAL_URL}/api/v1/search", json={"query": req.message, "top_k": 5})
                 resp.raise_for_status()
                 chunks = resp.json().get("results", [])
+                RETRIEVAL_LATENCY.observe(time.time() - retrieval_start)
             except httpx.HTTPError as e:
                 logger.error(f"retrieval-svc call failed: {e}")
                 chunks = []
@@ -85,10 +95,16 @@ async def chat(req: ChatRequest):
             "system": system_prompt,
             "messages": [{"role": "user", "content": req.message}],
         }
+        bedrock_start = time.time()
         try:
             bedrock_resp = bedrock.invoke_model(modelId=BEDROCK_MODEL_ID, body=json.dumps(body))
             result = json.loads(bedrock_resp["body"].read())
             answer = result["content"][0]["text"]
+            BEDROCK_LATENCY.observe(time.time() - bedrock_start)
+
+            usage = result.get("usage", {})
+            TOKEN_USAGE.labels(type="input").inc(usage.get("input_tokens", 0))
+            TOKEN_USAGE.labels(type="output").inc(usage.get("output_tokens", 0))
         except Exception as e:
             logger.error(f"Bedrock call failed: {e}")
             raise HTTPException(status_code=502, detail="LLM call failed") from e
