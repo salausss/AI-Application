@@ -43,4 +43,4 @@ metadata:
   namespace: argus
 spec:
   selector: {app: chat-svc}
-  ports: [{port: 8000, targetPort: 8000}]
+  ports: [{name: http, port: 8000, targetPort: 8000}]
