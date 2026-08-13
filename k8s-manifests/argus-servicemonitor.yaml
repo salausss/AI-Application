@@ -1,0 +1,18 @@
+# argus-servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argus-services
+  namespace: argus
+  labels:
+    release: mlops-dev-kube-prometheus-stack   # must match whatever step 1 printed
+spec:
+  namespaceSelector:
+    matchNames: [argus]
+  selector:
+    matchExpressions:
+      - {key: app, operator: In, values: [chat-svc, retrieval-svc, ingestion-svc, auth-svc]}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
