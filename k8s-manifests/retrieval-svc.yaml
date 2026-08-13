@@ -39,6 +39,8 @@ kind: Service
 metadata:
   name: retrieval-svc
   namespace: argus
-spec:
+  labels:
+    app: retrieval-svc
+    spec:
   selector: {app: retrieval-svc}
   ports: [{port: 8000, targetPort: 8000}]

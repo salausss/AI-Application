@@ -43,6 +43,8 @@ kind: Service
 metadata:
   name: ingestion-svc
   namespace: argus
+  labels:
+    app: ingestion-svc
 spec:
   selector: {app: ingestion-svc}
   ports: [{port: 8000, targetPort: 8000}]

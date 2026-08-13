@@ -39,6 +39,8 @@ kind: Service
 metadata:
   name: auth-svc
   namespace: argus
+  labels:
+    app: auth-svc
 spec:
   selector: {app: auth-svc}
   ports: [{port: 8000, targetPort: 8000}]
