@@ -1,5 +1,6 @@
 import os
 import io
+import time
 import json
 import logging
 import boto3
@@ -9,11 +10,16 @@ import asyncpg
 from fastapi import FastAPI, UploadFile, File
 from pypdf import PdfReader
 from uuid import uuid4
+from prometheus_client import Counter, Histogram, make_asgi_app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ingestion-svc")
 
 app = FastAPI(title="ingestion-svc", version="0.1.0")
+
+app.mount("/metrics", make_asgi_app())
+REQUEST_COUNT = Counter("http_requests_total", "Total requests", ["service", "endpoint", "status"])
+REQUEST_LATENCY = Histogram("http_request_duration_seconds", "Request latency", ["service", "endpoint"])
 
 DATABASE_URL = os.environ["DATABASE_URL"]
 
@@ -49,7 +55,7 @@ elif VECTOR_BACKEND == "weaviate":
         skip_init_checks=True
     )
     weaviate_collection = weaviate_client.collections.get("ArgusChunk")
-    
+
 # --- end SPOT 1 ---
 
 _pool: asyncpg.Pool | None = None

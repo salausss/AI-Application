@@ -1,17 +1,23 @@
 import os
 import json
 import logging
+import time
 import boto3
 import chromadb
 import weaviate
 from weaviate.classes.query import HybridFusion
 from fastapi import FastAPI
 from pydantic import BaseModel
+from prometheus_client import Counter, Histogram, make_asgi_app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("retrieval-svc")
 
 app = FastAPI(title="retrieval-svc", version="0.2.0")
+
+app.mount("/metrics", make_asgi_app())
+REQUEST_COUNT = Counter("http_requests_total", "Total requests", ["service", "endpoint", "status"])
+REQUEST_LATENCY = Histogram("http_request_duration_seconds", "Request latency", ["service", "endpoint"])
 
 VECTOR_BACKEND = os.environ.get("VECTOR_BACKEND", "chroma")  # "chroma" or "weaviate"
 
