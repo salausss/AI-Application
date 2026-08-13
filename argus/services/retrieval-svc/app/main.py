@@ -91,3 +91,4 @@ async def search(req: SearchRequest):
         ]
 
     return {"results": hits, "backend": VECTOR_BACKEND, "alpha": HYBRID_ALPHA if VECTOR_BACKEND == "weaviate" else None}
+

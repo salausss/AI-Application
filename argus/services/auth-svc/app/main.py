@@ -6,6 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from jose import jwt, JWTError
+from prometheus_client import Counter, Histogram, make_asgi_app
 
 app = FastAPI(title="auth-svc", version="0.1.0")
 
@@ -89,6 +90,10 @@ async def login(req: LoginRequest):
 async def me(payload: dict = Depends(verify_token)):
     return {"user_id": payload["sub"], "role": payload["role"]}
 
+REQUEST_COUNT = Counter("http_requests_total", "Total requests", ["service", "endpoint", "status"])
+REQUEST_LATENCY = Histogram("http_request_duration_seconds", "Request latency", ["service", "endpoint"])
+
+app.mount("/metrics", make_asgi_app())
 
 # --- TODO (Day 2 hands-on) ---
 # - /api/v1/auth/refresh -> exchange a valid refresh_token for a new access_token
