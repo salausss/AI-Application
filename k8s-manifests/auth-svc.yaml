@@ -43,4 +43,4 @@ metadata:
     app: auth-svc
 spec:
   selector: {app: auth-svc}
-  ports: [{port: 8000, targetPort: 8000}]
+  ports: [{name: http, port: 8000, targetPort: 8000}]

@@ -41,6 +41,6 @@ metadata:
   namespace: argus
   labels:
     app: retrieval-svc
-    spec:
+spec:
   selector: {app: retrieval-svc}
-  ports: [{port: 8000, targetPort: 8000}]
+  ports: [{name: http, port: 8000, targetPort: 8000}]
