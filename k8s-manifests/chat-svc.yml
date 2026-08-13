@@ -41,6 +41,8 @@ kind: Service
 metadata:
   name: chat-svc
   namespace: argus
+  labels:
+    app: chat-svc
 spec:
   selector: {app: chat-svc}
   ports: [{name: http, port: 8000, targetPort: 8000}]
