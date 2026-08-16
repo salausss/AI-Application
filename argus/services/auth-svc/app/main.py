@@ -10,6 +10,34 @@ from prometheus_client import Counter, Histogram, make_asgi_app
 
 app = FastAPI(title="auth-svc", version="0.1.0")
 
+SERVICE_NAME = "auth-svc"  # change per service: "auth-svc", "retrieval-svc", "ingestion-svc"
+
+REQUEST_COUNT = Counter(
+    "http_requests_total", "Total HTTP requests",
+    ["service", "method", "endpoint", "status"]
+)
+REQUEST_LATENCY = Histogram(
+    "http_request_duration_seconds", "HTTP request latency",
+    ["service", "method", "endpoint"],
+    buckets=[0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30]  # tuned for LLM-call-shaped latency, not typical web-request buckets
+)
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start = time.time()
+    status_code = 500
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    finally:
+        duration = time.time() - start
+        endpoint = request.url.path
+        REQUEST_COUNT.labels(service=SERVICE_NAME, method=request.method, endpoint=endpoint, status=status_code).inc()
+        REQUEST_LATENCY.labels(service=SERVICE_NAME, method=request.method, endpoint=endpoint).observe(duration)
+
+app.mount("/metrics", make_asgi_app())
+
 DATABASE_URL = os.environ["DATABASE_URL"]
 JWT_SECRET = os.environ["JWT_SECRET"]
 JWT_ALGORITHM = "HS256"
@@ -89,11 +117,6 @@ async def login(req: LoginRequest):
 @app.get("/api/v1/auth/me")
 async def me(payload: dict = Depends(verify_token)):
     return {"user_id": payload["sub"], "role": payload["role"]}
-
-REQUEST_COUNT = Counter("http_requests_total", "Total requests", ["service", "endpoint", "status"])
-REQUEST_LATENCY = Histogram("http_request_duration_seconds", "Request latency", ["service", "endpoint"])
-
-app.mount("/metrics", make_asgi_app())
 
 # --- TODO (Day 2 hands-on) ---
 # - /api/v1/auth/refresh -> exchange a valid refresh_token for a new access_token

@@ -1,0 +1,46 @@
+# otel-collector-values.yaml
+mode: deployment
+
+config:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+  processors:
+    batch: {}
+    resource:
+      attributes:
+        - key: service.namespace
+          value: argus
+          action: insert
+
+  exporters:
+    prometheus:
+      endpoint: 0.0.0.0:8889
+    otlphttp/langfuse:
+      endpoint: "https://cloud.langfuse.com/api/public/otel"
+      headers:
+        Authorization: "Basic ${LANGFUSE_AUTH_HEADER}"   # base64(public_key:secret_key)
+    logging:
+      loglevel: debug
+
+  service:
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [batch, resource]
+        exporters: [otlphttp/langfuse, logging]
+      metrics:
+        receivers: [otlp]
+        processors: [batch, resource]
+        exporters: [prometheus, logging]
+
+ports:
+  prometheus:
+    enabled: true
+    containerPort: 8889
+    servicePort: 8889
