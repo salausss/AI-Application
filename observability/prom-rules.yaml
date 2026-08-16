@@ -1,0 +1,47 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: argus-alerts
+  namespace: argus
+  labels:
+    release: mlops-dev-kube-prometheus-stack
+spec:
+  groups:
+    - name: argus.rules
+      rules:
+        - alert: ArgusHighErrorRate
+          expr: |
+            sum(rate(http_requests_total{namespace="argus", status=~"5.."}[5m])) by (service)
+            / sum(rate(http_requests_total{namespace="argus"}[5m])) by (service)
+            > 0.05
+          for: 5m
+          labels: {severity: warning}
+          annotations:
+            summary: "{{ $labels.service }} error rate above 5%"
+            description: "{{ $labels.service }} has a 5xx rate of {{ $value | humanizePercentage }} over the last 5 minutes."
+
+        - alert: ArgusBedrockLatencyHigh
+          expr: |
+            histogram_quantile(0.95, rate(bedrock_invoke_duration_seconds_bucket[5m])) > 5
+          for: 5m
+          labels: {severity: warning}
+          annotations:
+            summary: "Bedrock p95 latency above 5s"
+            description: "chat-svc's Bedrock invoke_model p95 latency is {{ $value }}s over 5 minutes."
+
+        - alert: ArgusPodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace="argus"}[15m]) > 3
+          for: 5m
+          labels: {severity: critical}
+          annotations:
+            summary: "Pod {{ $labels.pod }} restarting repeatedly"
+            description: "{{ $labels.pod }} has restarted {{ $value }} times in 15 minutes."
+
+        - alert: ArgusNoRequests
+          expr: |
+            sum(rate(http_requests_total{namespace="argus", service="chat-svc"}[10m])) == 0
+          for: 10m
+          labels: {severity: info}
+          annotations:
+            summary: "chat-svc has received zero traffic for 10 minutes"
