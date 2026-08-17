@@ -3,7 +3,12 @@ mode: deployment
 
 image:
   repository: "otel/opentelemetry-collector-contrib"
-  
+
+resources:
+  requests: {cpu: "100m", memory: "256Mi"}
+  limits: {cpu: "500m", memory: "512Mi"}
+useGOMEMLIMIT: true
+
 config:
   receivers:
     otlp:
