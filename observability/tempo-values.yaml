@@ -1,0 +1,12 @@
+# tempo-values.yaml
+tempo:
+  retention: 24h
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+persistence:
+  enabled: true
+  size: 2Gi
+  storageClassName: gp2-retain
