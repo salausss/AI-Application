@@ -1,0 +1,13 @@
+# langfuse-values.yaml
+langfuse:
+  salt:
+    value: "a3f89d12e4b5c678a90123456789abcdef0123456789abcdef0123456789abcd"
+  nextauthSecret:
+    value: "9f8e7d6c5b4a3210fe2109876543210fedcba9876543210fedcba9876543210f"
+  encryptionKey:
+    value: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+# Ensures langfuse-web uses ClusterIP inside observability namespace
+web:
+  service:
+    type: ClusterIP
