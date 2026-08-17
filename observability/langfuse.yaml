@@ -32,7 +32,7 @@ redis:
 
 s3:
   auth:
-    rootPassword: "admin"
+    rootPassword: "mYLNv8OP0ZFrPZWBCulyenmlrzgAKHuj"
 
   resources:
     requests:
