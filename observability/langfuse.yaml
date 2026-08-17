@@ -17,6 +17,14 @@ postgresql:
 clickhouse:
   auth:
     password: "admin"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 200Mi
+    limits:
+      cpu: 1
+      memory: 3Gi
+  
 
 redis:
   auth:
@@ -25,3 +33,10 @@ redis:
 s3:
   auth:
     rootPassword: "admin"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: 1
+      memory: 3Gi
