@@ -39,8 +39,8 @@ s3:
       cpu: 100m
       memory: 256Mi
     limits:
-      cpu: 1Gi
-      memory: 1Gi
+      cpu: 1
+      memory: 3Gi
 
   livenessProbe:
     initialDelaySeconds: 90
@@ -49,7 +49,7 @@ s3:
     failureThreshold: 6
 
   readinessProbe:
-    initialDelaySeconds: 30
+    initialDelaySeconds: 60
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 6
