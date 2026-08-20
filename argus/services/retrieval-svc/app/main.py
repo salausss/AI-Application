@@ -48,9 +48,11 @@ VECTOR_BACKEND = os.environ.get("VECTOR_BACKEND", "chroma")  # "chroma" or "weav
 CHROMA_HOST = os.environ.get("CHROMA_HOST", "chromadb")
 CHROMA_PORT = int(os.environ.get("CHROMA_PORT", "8000"))
 
-WEAVIATE_HOST = os.environ.get("WEAVIATE_HTTP_HOST", "weaviate")
+WEAVIATE_HTTP_HOST = os.environ.get("WEAVIATE_HTTP_HOST", "weaviate")
+WEAVIATE_GRPC_HOST = os.environ.get("WEAVIATE_GRPC_HOST", "weaviate-grpc")   # <-- new, separate variable
 WEAVIATE_PORT = int(os.environ.get("WEAVIATE_HTTP_PORT", "8080"))
 WEAVIATE_GRPC_PORT = int(os.environ.get("WEAVIATE_GRPC_PORT_NUM", "50051"))
+
 HYBRID_ALPHA = float(os.environ.get("HYBRID_ALPHA", "0.75"))  # 1.0 = pure vector, 0.0 = pure BM25
 
 AWS_REGION = os.environ.get("AWS_REGION", "ap-south-1")
@@ -67,12 +69,11 @@ if VECTOR_BACKEND == "chroma":
     collection = chroma_client.get_or_create_collection(COLLECTION_NAME)
 elif VECTOR_BACKEND == "weaviate":
     weaviate_client = weaviate.connect_to_custom(
-        http_host=WEAVIATE_HOST, http_port=WEAVIATE_PORT, http_secure=False,
-        grpc_host=WEAVIATE_HOST, grpc_port=WEAVIATE_GRPC_PORT, grpc_secure=False,
+        http_host=WEAVIATE_HTTP_HOST, http_port=WEAVIATE_PORT, http_secure=False,
+        grpc_host=WEAVIATE_GRPC_HOST, grpc_port=WEAVIATE_GRPC_PORT, grpc_secure=False,
         skip_init_checks=True
     )
     weaviate_collection = weaviate_client.collections.get("ArgusChunk")
-
 
 def embed_text(text: str) -> list[float]:
     body = json.dumps({"inputText": text})
