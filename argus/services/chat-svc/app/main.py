@@ -16,6 +16,10 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.botocore import BotocoreInstrumentor
+from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chat-svc")
@@ -45,7 +49,17 @@ tracer_provider.add_span_processor(
 
 trace.set_tracer_provider(tracer_provider)
 
+# FastAPI incoming request tracing
 FastAPIInstrumentor.instrument_app(app)
+
+# HTTPX outbound HTTP tracing
+HTTPXClientInstrumentor().instrument()
+
+# AWS SDK / Bedrock tracing
+BotocoreInstrumentor().instrument()
+
+# PostgreSQL / asyncpg tracing
+AsyncPGInstrumentor().instrument()
 
 REQUEST_COUNT = Counter(
     "http_requests_total", "Total HTTP requests",
@@ -86,23 +100,19 @@ bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
 
 _pool: asyncpg.Pool | None = None
 
-
 async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None:
         _pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
     return _pool
 
-
 class ChatRequest(BaseModel):
     session_id: UUID | None = None
     message: str
 
-
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
 
 @app.post("/api/v1/chat")
 async def chat(req: ChatRequest):
