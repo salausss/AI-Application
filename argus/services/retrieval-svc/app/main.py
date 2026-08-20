@@ -9,13 +9,51 @@ from weaviate.classes.query import HybridFusion
 from fastapi import FastAPI, Depends, HTTPException, Request
 from pydantic import BaseModel
 from prometheus_client import Counter, Histogram, make_asgi_app
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.botocore import BotocoreInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("retrieval-svc")
 
 app = FastAPI(title="retrieval-svc", version="0.2.0")
 
-SERVICE_NAME = "chat-svc"  # change per service: "auth-svc", "retrieval-svc", "ingestion-svc"
+SERVICE_NAME = "retrieval-svc"  # change per service: "auth-svc", "retrieval-svc", "ingestion-svc"
+
+# OpenTelemetry tracing
+resource = Resource.create({
+    "service.name": SERVICE_NAME,
+})
+
+tracer_provider = TracerProvider(resource=resource)
+
+otlp_exporter = OTLPSpanExporter(
+    endpoint=os.environ.get(
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "otel-collector-opentelemetry-collector.observability.svc.cluster.local:4317",
+    ),
+    insecure=True,
+)
+
+tracer_provider.add_span_processor(
+    BatchSpanProcessor(otlp_exporter)
+)
+
+trace.set_tracer_provider(tracer_provider)
+
+# Incoming FastAPI requests
+FastAPIInstrumentor.instrument_app(app)
+
+# AWS Bedrock / boto3
+BotocoreInstrumentor().instrument()
+
+# HTTP client instrumentation
+HTTPXClientInstrumentor().instrument()
 
 REQUEST_COUNT = Counter(
     "http_requests_total", "Total HTTP requests",

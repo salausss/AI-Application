@@ -7,10 +7,44 @@ from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 from prometheus_client import Counter, Histogram, make_asgi_app
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
 
 app = FastAPI(title="auth-svc", version="0.1.0")
 
 SERVICE_NAME = "auth-svc"  # change per service: "auth-svc", "retrieval-svc", "ingestion-svc"
+
+# OpenTelemetry tracing
+resource = Resource.create({
+    "service.name": SERVICE_NAME,
+})
+
+tracer_provider = TracerProvider(resource=resource)
+
+otlp_exporter = OTLPSpanExporter(
+    endpoint=os.environ.get(
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "otel-collector-opentelemetry-collector.observability.svc.cluster.local:4317",
+    ),
+    insecure=True,
+)
+
+tracer_provider.add_span_processor(
+    BatchSpanProcessor(otlp_exporter)
+)
+
+trace.set_tracer_provider(tracer_provider)
+
+# Incoming FastAPI requests
+FastAPIInstrumentor.instrument_app(app)
+
+# PostgreSQL / asyncpg
+AsyncPGInstrumentor().instrument()
 
 REQUEST_COUNT = Counter(
     "http_requests_total", "Total HTTP requests",
