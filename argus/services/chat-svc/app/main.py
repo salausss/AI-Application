@@ -10,13 +10,42 @@ from pydantic import BaseModel
 from uuid import UUID, uuid4
 import time
 from prometheus_client import Counter, Histogram, make_asgi_app
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("chat-svc")
 
+SERVICE_NAME = "chat-svc"  # change per service: "auth-svc", "retrieval-svc", "ingestion-svc"
+
 app = FastAPI(title="chat-svc", version="0.1.0")
 
-SERVICE_NAME = "chat-svc"  # change per service: "auth-svc", "retrieval-svc", "ingestion-svc"
+# OpenTelemetry tracing
+resource = Resource.create({
+    "service.name": SERVICE_NAME,
+})
+
+tracer_provider = TracerProvider(resource=resource)
+
+otlp_exporter = OTLPSpanExporter(
+    endpoint=os.environ.get(
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "otel-collector-opentelemetry-collector.observability.svc.cluster.local:4317",
+    ),
+    insecure=True,
+)
+
+tracer_provider.add_span_processor(
+    BatchSpanProcessor(otlp_exporter)
+)
+
+trace.set_tracer_provider(tracer_provider)
+
+FastAPIInstrumentor.instrument_app(app)
 
 REQUEST_COUNT = Counter(
     "http_requests_total", "Total HTTP requests",
