@@ -4,7 +4,7 @@ import logging
 import httpx
 import boto3
 import asyncpg
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from uuid import UUID, uuid4

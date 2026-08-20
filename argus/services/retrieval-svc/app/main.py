@@ -6,7 +6,7 @@ import boto3
 import chromadb
 import weaviate
 from weaviate.classes.query import HybridFusion
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, Request
 from pydantic import BaseModel
 from prometheus_client import Counter, Histogram, make_asgi_app
 
