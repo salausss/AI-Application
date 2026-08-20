@@ -33,6 +33,7 @@ service:
       port: 50051
 
 grpcService:
+  type: ClusterIP
   enabled: true
   name: weaviate-grpc
   ports:
