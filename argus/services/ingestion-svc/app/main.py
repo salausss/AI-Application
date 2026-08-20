@@ -7,7 +7,7 @@ import boto3
 import chromadb
 import weaviate
 import asyncpg
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Request, Depends, HTTPException
 from pypdf import PdfReader
 from uuid import uuid4
 from prometheus_client import Counter, Histogram, make_asgi_app
