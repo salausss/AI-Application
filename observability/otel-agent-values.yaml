@@ -1,0 +1,50 @@
+mode: daemonset
+
+image:
+  repository: otel/opentelemetry-collector-contrib
+
+command:
+  name: otelcol-contrib
+
+presets:
+  kubernetesAttributes:
+    enabled: true
+  logsCollection:
+    enabled: true          # tails /var/log/pods
+    includeCollectorLogs: false
+  kubeletMetrics:
+    enabled: true          # node/pod/container resource metrics
+  hostMetrics:
+    enabled: true          # node CPU/mem/disk/network
+
+config:
+  processors:
+    memory_limiter:
+      check_interval: 1s
+      limit_percentage: 80
+      spike_limit_percentage: 25
+    batch: {}
+
+  exporters:
+    otlp:
+      endpoint: otel-gateway-opentelemetry-collector.observability.svc.cluster.local:4317
+      tls:
+        insecure: true    # fine inside the cluster for a lab; use mTLS in production
+
+  service:
+    pipelines:
+      logs:
+        receivers: [filelog]
+        processors: [memory_limiter, k8sattributes, batch]
+        exporters: [otlp]
+      metrics:
+        receivers: [hostmetrics, kubeletstats]
+        processors: [memory_limiter, k8sattributes, batch]
+        exporters: [otlp]
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
