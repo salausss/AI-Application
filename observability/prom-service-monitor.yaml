@@ -2,7 +2,7 @@ apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: otel-collector-gateway
-  namespace: monitoring
+  namespace: observability
   labels:
     release: prometheus
 spec:
