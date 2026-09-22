@@ -15,14 +15,14 @@ spec:
       - path: /prom
         pathType: Prefix
         backend: 
-          Service:
+          service:
             name: prometheus-kube-prometheus-prometheus
             port:
               number: 9090
       - path: /Grafana
         pathType: Prefix
         backend:
-          Service:
+          service:
             name: prometheus-grafana
             port:
               number: 80
