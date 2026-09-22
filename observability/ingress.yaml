@@ -6,15 +6,23 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    #alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
 spec:
   ingressClassName: alb
   rules:
   - http:
-      path: /
-      pathType: Prefix
-      backend: 
-        Service:
-          name: prometheus-kube-prometheus-prometheus
-          port:
-            number: 9090
+      paths:
+      - path: /prom
+        pathType: Prefix
+        backend: 
+          Service:
+            name: prometheus-kube-prometheus-prometheus
+            port:
+              number: 9090
+      - path: /Grafana
+        pathType: Prefix
+        backend:
+          Service:
+            name: prometheus-grafana
+            port:
+              number: 80
