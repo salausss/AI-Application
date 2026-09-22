@@ -1,0 +1,20 @@
+apiVersion:
+kind: Ingress
+metadata:
+  name: ingress-observ
+  namespace: observability
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+spec:
+  ingressClassName: alb
+  rules:
+  - http:
+      path: /
+      pathType: Prefix
+      backend: 
+        Service:
+          name: prometheus-kube-prometheus-prometheus
+          port:
+            number: 9090
