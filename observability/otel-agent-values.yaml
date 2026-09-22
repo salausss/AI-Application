@@ -10,12 +10,12 @@ presets:
   kubernetesAttributes:
     enabled: true
   logsCollection:
-    enabled: true          # tails /var/log/pods
+    enabled: true          # auto-injects filelog receiver + adds it to logs pipeline
     includeCollectorLogs: false
   kubeletMetrics:
-    enabled: true          # node/pod/container resource metrics
+    enabled: true          # auto-injects kubeletstats receiver
   hostMetrics:
-    enabled: true          # node CPU/mem/disk/network
+    enabled: true          # auto-injects hostmetrics receiver
 
 config:
   processors:
@@ -34,12 +34,8 @@ config:
   service:
     pipelines:
       logs:
-        receivers: [filelog]
-        processors: [memory_limiter, k8sattributes, batch]
         exporters: [otlp]
       metrics:
-        receivers: [hostmetrics, kubeletstats]
-        processors: [memory_limiter, k8sattributes, batch]
         exporters: [otlp]
 
 resources:

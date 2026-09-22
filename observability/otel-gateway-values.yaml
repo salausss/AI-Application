@@ -11,6 +11,13 @@ presets:
   kubernetesAttributes:
     enabled: true   # enriches telemetry with pod/namespace/node metadata
 
+ports:
+  prom-metrics:
+    enabled: true
+    containerPort: 8889
+    servicePort: 8889
+    protocol: TCP
+
 config:
   receivers:
     otlp:
@@ -32,6 +39,10 @@ config:
   exporters:
     debug:
       verbosity: basic
+    prometheus:
+      endpoint: "0.0.0.0:8889"
+      resource_to_telemetry_conversion:
+        enabled: true
 
   service:
     pipelines:
@@ -42,7 +53,7 @@ config:
       metrics:
         receivers: [otlp]
         processors: [memory_limiter, batch]
-        exporters: [debug]
+        exporters: [prometheus]
       logs:
         receivers: [otlp]
         processors: [memory_limiter, batch]
