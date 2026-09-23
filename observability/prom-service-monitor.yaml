@@ -10,9 +10,7 @@ spec:
     matchLabels:
       app.kubernetes.io/name: opentelemetry-collector
       app.kubernetes.io/instance: otel-gateway
-  namespaceSelector:
-    matchNames:
-      - observability
+  namespaceSelector: {}
   endpoints:
     - port: prom-metrics
       interval: 30s
